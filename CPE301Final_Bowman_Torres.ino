@@ -15,6 +15,7 @@ Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);
 #define RDA 0x80
 #define TBE 0x20
 
+//UART declarations
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
 volatile unsigned char *myUCSR0C = (unsigned char *)0x00C2;
@@ -37,8 +38,8 @@ volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
 
-//button attachInterrupt setup
-const byte interruptPin = 18;
+//button attachInterrupt setup, pin18
+const byte interruptPin = 18;  
 volatile byte buttonState = LOW;
 
 //main funtion
@@ -64,22 +65,28 @@ void loop() {
 
 //Attatchinterupt, used to interupt 
 void button_ISR(){
-  // button attached to pin 18
-  // add LED off and on code
-  *port_l |= (0x01);   //turns on blue light all others off
-  *port_a &= ~(0x01 << 3);
-  *port_c &= ~(0x01 << 3);
-  *port_g &= ~(0x01 << 3);
   fanMotor(0);
 }
 
 void disabled(){
-  *port_g |= (0x01);   //turns on yellow light all others off
-  *port_a &= ~(0x01 << 3);
-  *port_c &= ~(0x01 << 3);
-  *port_l &= ~(0x01 << 3);
+  lightSwitch(10);
   // make sure fan motor is off include code later
 }
+
+void lightSwitch(int state){
+  if (state == 10){
+    //Yellow LED only ON
+    *port_g |= (0x01);   //turns on yellow light all others off
+    *port_a &= ~(0x01 << 3);
+    *port_c &= ~(0x01 << 3);
+    *port_l &= ~(0x01 << 3);
+  } else if{state == 11}{
+    //red LED on
+  } else if(){
+    
+  }
+}
+
 void updates(){
   
 }
