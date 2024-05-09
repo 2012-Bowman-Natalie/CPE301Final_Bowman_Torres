@@ -29,6 +29,10 @@ volatile unsigned char* pin_l = (unsigned char*) 0x109;
 void setup() {
   // put your setup code here, to run once:
   U0init(9600);
+  *ddr_a |= 0x01;
+  *ddr_c |= 0x01;
+  *ddr_g |= 0x01;
+  *ddr_l |= 0x01;
   int temperature = tempRead();        //Store temperature values recorded
 }
 
