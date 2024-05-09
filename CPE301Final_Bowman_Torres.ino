@@ -2,6 +2,16 @@
 Team Members (2): Natalie Bowman and Jessica Torres
 Due: 5/11/2024
 */
+
+//Includes the Arduino Stepper Library
+#include <Stepper.h>
+// Defines the number of steps per rotation
+const int stepsPerRevolution = 2038;
+// Creates an instance of stepper class
+// Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
+Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);
+
+
 #define RDA 0x80
 #define TBE 0x20
 
@@ -26,9 +36,12 @@ volatile unsigned char* pin_g = (unsigned char*) 0x32;
 volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
+
 //button attachInterrupt setup
 const byte interruptPin = 18;
-volatile byte state = RISING;
+volatile byte buttonState = LOW;
+
+//main funtion
 void setup() {
   // put your setup code here, to run once:
   U0init(9600);
@@ -37,6 +50,10 @@ void setup() {
   *ddr_g |= 0x01;
   *ddr_l |= 0x01;
   int temperature = tempRead();        //Store temperature values recorded
+
+  //will go under function under select condition
+  digitalPintoInterrupt(interruptPin);
+  attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
 }
 
 void loop() {
@@ -44,12 +61,18 @@ void loop() {
   int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
 
 }
-int button(){
+
+//Attatchinterupt, used to interupt 
+void button_ISR(){
   // button attached to pin 18
-  digitalPintoInterrupt(interruptPin)
-  attachInterrupt(digitalPintoInterrupt(interruptPin), ISR, RISING)
   // add LED off and on code
+  *port_l |= (0x01);   //turns on blue light all others off
+  *port_a &= ~(0x01 << 3);
+  *port_c &= ~(0x01 << 3);
+  *port_g &= ~(0x01 << 3);
+  fanMotor(0);
 }
+
 void disabled(){
   *port_g |= (0x01);   //turns on yellow light all others off
   *port_a &= ~(0x01 << 3);
@@ -60,6 +83,7 @@ void disabled(){
 void updates(){
   
 }
+
 void idle(){
   *port_c |= (0x01);   //turns on green light all others off
   *port_a &= ~(0x01 << 3);
@@ -67,6 +91,7 @@ void idle(){
   *port_l &= ~(0x01 << 3);
   // make sure fan motor is off include code later
 }
+
 //check and return temperature value
 int tempRead(){
   int chk = DHT.read11(DHT11_PIN);
@@ -77,11 +102,17 @@ void waterLevel(){
   
 }
 
-void running(){
-  *port_l |= (0x01);   //turns on blue light all others off
-  *port_a &= ~(0x01 << 3);
-  *port_c &= ~(0x01 << 3);
-  *port_g &= ~(0x01 << 3);
+//Function to turn fan MOTOR on/off
+void fanMotor(int buttonsState){
+  if (buttonState == 0){
+    //stop motor if function is called BY INTERRUPT
+    myStepper.setSpeed(0);
+    myStepper.step(0);
+  } else {
+    //Rotate CW slowly at 5RPM
+    myStepper.setSpeed(5);
+    myStepper.step(-stepsPerRevolution);
+  }
 }
 
 void clock(){
