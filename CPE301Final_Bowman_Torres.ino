@@ -50,22 +50,26 @@ volatile unsigned char* pin_l = (unsigned char*) 0x109;
 //button attachInterrupt setup, pin18
 const byte interruptPin = 18;  
 volatile byte buttonState = LOW;
+
+//global variables
 int waterlevel = 0;
 int flag = 0;
 
 //main funtion
 void setup() {
   // put your setup code here, to run once:
-  U0init(9600);
+  U0init(9600);          //initialized baud rate
+  //Set up LEDs
   *ddr_a |= 0x01;
   *ddr_c |= 0x01;
   *ddr_g |= 0x01;
   *ddr_l |= 0x01;
+  //adc initialized
   adc_init();
   *ddr_f = 0b10000000
   if(flag == 1){
-  //errorMessage
-  flag = 0;
+    errorMessage();
+    flag = 0;
   }
   int temperature = tempRead();        //Store temperature values recorded
 
@@ -139,10 +143,6 @@ int tempRead(){
   return chk;
 }
 
-void waterLevel(){
-  
-}
-
 //Function to turn fan MOTOR on/off
 void fanMotor(int buttonsState){
   if (buttonState == 0){
@@ -171,22 +171,20 @@ void errorMessage(){
   lcd.write("TOO LOW");
   my_delay(1000);
   lcd.clear();
-  
-  *port_a |= (0x01);   //turns on red light all others off
-  *port_c &= ~(0x01 << 3);
-  *port_g &= ~(0x01 << 3);
-  *port_l &= ~(0x01 << 3);
+
+  lightSwitch(20);        //Red LED ON
 }
 //Updates humidty and temperature readings. Displays onto LCD screen
 void statusUpdates(int humidity, int temperature){
   //Scrolls text to the left to display full text
   for (int i = 13; i >= 1; i--){
+    int chk = DHT.read11(DHT11_PIN);
     lcd.setCursor(0,0);
     lcd.write("Humidity: ");
-    lcd.write(humidity);
+    lcd.write(DHT.humidity);
     lcd.setCursor(i,1);
     lcd.write("Temperature: ");
-    lcd.write(temperature);
+    lcd.write(DHT.temperature);
     my_delay(300);
     lcd.clear();
   }
