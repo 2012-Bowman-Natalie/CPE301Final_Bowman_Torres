@@ -42,6 +42,10 @@ void loop() {
 
 }
 
+void disabled(){
+  statusUpdates(humidity, temperature);
+  *port_c |= 0x80;
+}
 
 //check and return temperature value
 int tempRead(){
