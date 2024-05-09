@@ -21,6 +21,11 @@ volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
 volatile unsigned char *myUCSR0C = (unsigned char *)0x00C2;
 volatile unsigned int  *myUBRR0  = (unsigned int *) 0x00C4;
 volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
+//ADC 
+volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
+volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
+volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
+volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 //red LED pin 29
 volatile unsigned char* port_a = (unsigned char*) 0x22;
 volatile unsigned char* ddr_a = (unsigned char*) 0x21;
@@ -29,6 +34,10 @@ volatile unsigned char* pin_a = (unsigned char*) 0x20;
 volatile unsigned char* port_c = (unsigned char*) 0x28;
 volatile unsigned char* ddr_c = (unsigned char*) 0x27;
 volatile unsigned char* pin_c = (unsigned char*) 0x26;
+//water sensor analog pin
+volatile unsigned char *pin_f = (unsigned char*) 0x2F;
+volatile unsigned char *ddr_f = (unsigned char *) 0x30;
+volatile unsigned char *port_f = (unsigned char *) 0x31;
 //green LED pin 41
 volatile unsigned char* port_g = (unsigned char*) 0x34;
 volatile unsigned char* ddr_g = (unsigned char*) 0x33;
@@ -41,6 +50,8 @@ volatile unsigned char* pin_l = (unsigned char*) 0x109;
 //button attachInterrupt setup, pin18
 const byte interruptPin = 18;  
 volatile byte buttonState = LOW;
+int waterlevel = 0;
+int flag = 0;
 
 //main funtion
 void setup() {
@@ -50,6 +61,12 @@ void setup() {
   *ddr_c |= 0x01;
   *ddr_g |= 0x01;
   *ddr_l |= 0x01;
+  adc_init();
+  *ddr_f = 0b10000000
+  if(flag == 1){
+  //errorMessage
+  flag = 0;
+  }
   int temperature = tempRead();        //Store temperature values recorded
 
   //will go under function under select condition
@@ -60,7 +77,8 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
-
+  int input = adc_read(7);
+  waterresults(input);
 }
 
 //Attatchinterupt, used to interupt 
