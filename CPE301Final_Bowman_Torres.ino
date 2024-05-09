@@ -10,7 +10,22 @@ volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
 volatile unsigned char *myUCSR0C = (unsigned char *)0x00C2;
 volatile unsigned int  *myUBRR0  = (unsigned int *) 0x00C4;
 volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
-
+//red LED pin 29
+volatile unsigned char* port_a = (unsigned char*) 0x22;
+volatile unsigned char* ddr_a = (unsigned char*) 0x21;
+volatile unsigned char* pin_a = (unsigned char*) 0x20;
+//yellow LED pin 31
+volatile unsigned char* port_c = (unsigned char*) 0x28;
+volatile unsigned char* ddr_c = (unsigned char*) 0x27;
+volatile unsigned char* pin_c = (unsigned char*) 0x26;
+//green LED pin 41
+volatile unsigned char* port_g = (unsigned char*) 0x34;
+volatile unsigned char* ddr_g = (unsigned char*) 0x33;
+volatile unsigned char* pin_g = (unsigned char*) 0x32;
+//blue LED pin 43
+volatile unsigned char* port_l = (unsigned char*) 0x10B;
+volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
+volatile unsigned char* pin_l = (unsigned char*) 0x109;
 void setup() {
   // put your setup code here, to run once:
   U0init(9600);
