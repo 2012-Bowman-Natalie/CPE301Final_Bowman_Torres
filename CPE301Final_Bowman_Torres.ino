@@ -75,15 +75,31 @@ void disabled(){
 
 void lightSwitch(int state){
   if (state == 10){
-    //Yellow LED only ON
-    *port_g |= (0x01);   //turns on yellow light all others off
+    //Yellow LED only ON all others OFF
+    *port_g |= (0x01);
     *port_a &= ~(0x01 << 3);
     *port_c &= ~(0x01 << 3);
     *port_l &= ~(0x01 << 3);
   } else if{state == 11}{
-    //red LED on
-  } else if(){
-    
+    //Greeen LED only ON all others OFF
+    *port_c |= (0x01);   
+    *port_a &= ~(0x01 << 3);
+    *port_g &= ~(0x01 << 3);
+    *port_l &= ~(0x01 << 3);
+  } else if(state == 20){
+    //Red LED ON pnly all others OFF
+    *port_a |= (0x01);
+    *port_c &= ~(0x01 << 3);
+    *port_g &= ~(0x01 << 3);
+    *port_l &= ~(0x01 << 3);
+  } else if(state == 22){
+    //Blue LED only ON all others OFF
+    *port_l |= (0x01);
+    *port_c &= ~(0x01 << 3);
+    *port_g &= ~(0x01 << 3);
+    *port_a &= ~(0x01 << 3);
+  }else {
+    //true statement
   }
 }
 
