@@ -50,14 +50,30 @@ void disabled(){
   *port_g &= ~(0x01 << 3);
   *port_l &= ~(0x01 << 3);
 }
-
+void updates(){
+  
+}
+void idle(){
+  
+}
 //check and return temperature value
 int tempRead(){
   int chk = DHT.read11(DHT11_PIN);
   return chk;
 }
 
-//
+void waterLevel(){
+  
+}
+
+void running(){
+  
+}
+
+void clock(){
+  
+}
+
 void errorMessage(){
   lcd.begin(16,2);      //Set parameters (# of columns, # of rows)
   lcd.setCursor(5,0);   //Place cursor to begin write
@@ -97,10 +113,6 @@ int my_delay(unsigned int millis){
     *myTIFR1 |= 0x01;                 //Clear the flag bit for next use
   }return 1;                          //Return value of 1 when for loop is complete with iterations
 }
-
-
-
-
 
 void U0init(unsigned long U0baud)
 {
