@@ -19,9 +19,30 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
 
 }
 
+
+//check and return temperature value
+int tempRead(){
+  int chk = DHT.read11(DHT11_PIN);
+  return chk;
+}
+
+//
+void errorMessage(){
+  lcd.begin(16,2);      //Set parameters (# of columns, # of rows)
+  lcd.setCursor(5,0);   //Place cursor to begin write
+  lcd.write("ERROR");   //Print error message
+  my_delay(1000);          //  !!!!!! check if valid delay function
+  lcd.setCursor(2,0);
+  lcd.write("WATER LEVEL");
+  lcd.setCursor(4, 1);
+  lcd.write("TOO LOW");
+  my_delay(1000);
+  lcd.clear();
+}
 //Updates humidty and temperature readings. Displays onto LCD screen
 void statusUpdates(int humidity, int temperature){
   //Scrolls text to the left to display full text
@@ -37,6 +58,7 @@ void statusUpdates(int humidity, int temperature){
   }
 }
 
+//delay function uses milliseconds 
 int my_delay(unsigned int millis){
   unsigned int ticks = 16000;         //kept as variable for clarity
   for(int i = 0; i < millis; i++){    //For loop to count 60 cycles (60 seconds)
