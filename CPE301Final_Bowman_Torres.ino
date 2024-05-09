@@ -14,6 +14,7 @@ volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
 void setup() {
   // put your setup code here, to run once:
   U0init(9600);
+  int temperature = tempRead();        //Store temperature values recorded
 }
 
 void loop() {
@@ -21,7 +22,32 @@ void loop() {
 
 }
 
+//Updates humidty and temperature readings. Displays onto LCD screen
+void statusUpdates(int humidity, int temperature){
+  //Scrolls text to the left to display full text
+  for (int i = 13; i >= 1; i--){
+    lcd.setCursor(0,0);
+    lcd.write("Humidity: ");
+    lcd.write(humidity);
+    lcd.setCursor(i,1);
+    lcd.write("Temperature: ");
+    lcd.write(temperature);
+    my_delay(300);
+    lcd.clear();
+  }
+}
 
+int my_delay(unsigned int millis){
+  unsigned int ticks = 16000;         //kept as variable for clarity
+  for(int i = 0; i < millis; i++){    //For loop to count 60 cycles (60 seconds)
+    *myTCCR1B &= 0xF8;                //make sure timer is off
+    *myTCNT1 = (unsigned int) (65536 - ticks);  //counter
+    *myTCCR1B |= 0x01;                //Pre-scalar 1 in order to scale to 1 kHz -> 0.001 sec
+    while((*myTIFR1 & 0x01) == 0);    //Wait for TIFR overflow flag bit to be set
+    *myTCCR1B &= 0xF8;                //Turn off the timer after getting delay
+    *myTIFR1 |= 0x01;                 //Clear the flag bit for next use
+  }return 1;                          //Return value of 1 when for loop is complete with iterations
+}
 
 
 
