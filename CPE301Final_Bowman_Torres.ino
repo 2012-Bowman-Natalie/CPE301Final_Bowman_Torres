@@ -48,11 +48,12 @@ int button(){
   // button attached to pin 18
   digitalPintoInterrupt(interruptPin)
   attachInterrupt(digitalPintoInterrupt(interruptPin), ISR, RISING)
+  // add LED off and on code
 }
 void disabled(){
-  *port_c |= (0x01);
+  *port_g |= (0x01);   //turns on yellow light all others off
   *port_a &= ~(0x01 << 3);
-  *port_g &= ~(0x01 << 3);
+  *port_c &= ~(0x01 << 3);
   *port_l &= ~(0x01 << 3);
   // make sure fan motor is off include code later
 }
@@ -60,7 +61,11 @@ void updates(){
   
 }
 void idle(){
-  
+  *port_c |= (0x01);   //turns on green light all others off
+  *port_a &= ~(0x01 << 3);
+  *port_g &= ~(0x01 << 3);
+  *port_l &= ~(0x01 << 3);
+  // make sure fan motor is off include code later
 }
 //check and return temperature value
 int tempRead(){
@@ -73,7 +78,10 @@ void waterLevel(){
 }
 
 void running(){
-  
+  *port_l |= (0x01);   //turns on blue light all others off
+  *port_a &= ~(0x01 << 3);
+  *port_c &= ~(0x01 << 3);
+  *port_g &= ~(0x01 << 3);
 }
 
 void clock(){
@@ -91,6 +99,11 @@ void errorMessage(){
   lcd.write("TOO LOW");
   my_delay(1000);
   lcd.clear();
+  
+  *port_a |= (0x01);   //turns on red light all others off
+  *port_c &= ~(0x01 << 3);
+  *port_g &= ~(0x01 << 3);
+  *port_l &= ~(0x01 << 3);
 }
 //Updates humidty and temperature readings. Displays onto LCD screen
 void statusUpdates(int humidity, int temperature){
