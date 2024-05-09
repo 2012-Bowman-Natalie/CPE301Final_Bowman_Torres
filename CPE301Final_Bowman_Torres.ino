@@ -26,7 +26,9 @@ volatile unsigned char* pin_g = (unsigned char*) 0x32;
 volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
-
+//button attachInterrupt setup
+const byte interruptPin = 18;
+volatile byte state = RISING;
 void setup() {
   // put your setup code here, to run once:
   U0init(9600);
@@ -42,13 +44,17 @@ void loop() {
   int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
 
 }
-
+int button(){
+  // button attached to pin 18
+  digitalPintoInterrupt(interruptPin)
+  attachInterrupt(digitalPintoInterrupt(interruptPin), ISR, RISING)
+}
 void disabled(){
-  statusUpdates(humidity, temperature);
   *port_c |= (0x01);
   *port_a &= ~(0x01 << 3);
   *port_g &= ~(0x01 << 3);
   *port_l &= ~(0x01 << 3);
+  // make sure fan motor is off include code later
 }
 void updates(){
   
