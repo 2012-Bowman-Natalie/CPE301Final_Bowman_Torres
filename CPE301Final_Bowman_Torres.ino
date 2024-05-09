@@ -233,30 +233,6 @@ void adc_init()
   *my_ADMUX  &= 0b11100000; // clear bit 4-0 to 0 to reset the channel and gain bits
 }
 
-unsigned int adc_read(unsigned char adc_channel_num)
-{
-  // clear the channel selection bits (MUX 4:0)
-  *my_ADMUX  &= 0b11100000;
-  // clear the channel selection bits (MUX 5)
-  *my_ADCSRB &= 0b11110111;
-  // set the channel number
-  if(adc_channel_num > 7)
-  {
-    // set the channel selection bits, but remove the most significant bit (bit 3)
-    adc_channel_num -= 8;
-    // set MUX bit 5
-    *my_ADCSRB |= 0b00001000;
-  }
-  // set the channel selection bits
-  *my_ADMUX  += adc_channel_num;
-  // set bit 6 of ADCSRA to 1 to start a conversion
-  *my_ADCSRA |= 0x40;
-  // wait for the conversion to complete
-  while((*my_ADCSRA & 0x40) != 0);
-  // return the result in the ADC data register
-  return *my_ADC_DATA;
-}
-
 void U0init(unsigned long U0baud)
 {
  unsigned long FCPU = 16000000;
@@ -281,3 +257,29 @@ void U0putchar(unsigned char U0pdata)
   while(!(*myUCSR0A & TBE));
   *myUDR0 = U0pdata;
 }
+
+
+unsigned int adc_read(unsigned char adc_channel_num)
+{
+  // clear the channel selection bits (MUX 4:0)
+  *my_ADMUX  &= 0b11100000;
+  // clear the channel selection bits (MUX 5)
+  *my_ADCSRB &= 0b11110111;
+  // set the channel number
+  if(adc_channel_num > 7)
+  {
+    // set the channel selection bits, but remove the most significant bit (bit 3)
+    adc_channel_num -= 8;
+    // set MUX bit 5
+    *my_ADCSRB |= 0b00001000;
+  }
+  // set the channel selection bits
+  *my_ADMUX  += adc_channel_num;
+  // set bit 6 of ADCSRA to 1 to start a conversion
+  *my_ADCSRA |= 0x40;
+  // wait for the conversion to complete
+  while((*my_ADCSRA & 0x40) != 0);
+  // return the result in the ADC data register
+  return *my_ADC_DATA;
+}
+
