@@ -26,6 +26,7 @@ volatile unsigned char* pin_g = (unsigned char*) 0x32;
 volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
+
 void setup() {
   // put your setup code here, to run once:
   U0init(9600);
