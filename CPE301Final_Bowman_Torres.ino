@@ -45,7 +45,10 @@ void loop() {
 
 void disabled(){
   statusUpdates(humidity, temperature);
-  *port_c |= 0x80;
+  *port_c |= (0x01);
+  *port_a &= ~(0x01 << 3);
+  *port_g &= ~(0x01 << 3);
+  *port_l &= ~(0x01 << 3);
 }
 
 //check and return temperature value
