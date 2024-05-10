@@ -121,7 +121,7 @@ void lightSwitch(int state){
     *port_g &= ~(0x01 << 3);
     *port_a &= ~(0x01 << 3);
   }else {
-    //true statement
+    1 == 1;
   }
 }
 
@@ -174,6 +174,7 @@ void errorMessage(){
 
   lightSwitch(20);        //Red LED ON
 }
+
 //Updates humidty and temperature readings. Displays onto LCD screen
 void statusUpdates(int humidity, int temperature){
   //Scrolls text to the left to display full text
