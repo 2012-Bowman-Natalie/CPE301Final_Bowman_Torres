@@ -11,10 +11,15 @@ const int stepsPerRevolution = 2038;
 // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
 Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);
 
-
 #define RDA 0x80
 #define TBE 0x20
 
+volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
+volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
+volatile unsigned char *myTCCR1C = (unsigned char *) 0x82;
+volatile unsigned char *myTIMSK1 = (unsigned char *) 0x6F;
+volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
+volatile unsigned char *myTIFR1 =  (unsigned char *) 0x36;
 //UART declarations
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
@@ -66,7 +71,7 @@ void setup() {
   *ddr_l |= 0x01;
   //adc initialized
   adc_init();
-  *ddr_f = 0b10000000
+  *ddr_f = 0b10000000;
   if(flag == 1){
     errorMessage();
     flag = 0;
@@ -102,7 +107,7 @@ void lightSwitch(int state){
     *port_a &= ~(0x01 << 3);
     *port_c &= ~(0x01 << 3);
     *port_l &= ~(0x01 << 3);
-  } else if{state == 11}{
+  } else if(state == 11){
     //Greeen LED only ON all others OFF
     *port_c |= (0x01);   
     *port_a &= ~(0x01 << 3);
