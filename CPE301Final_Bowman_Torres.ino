@@ -93,6 +93,14 @@ void setup() {
   //will go under function under select condition
   digitalPintoInterrupt(interruptPin);
   attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
+
+  Wire.begin();
+  RTC.begin();
+
+  if (! RTC.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
 }
 
 void loop() {
