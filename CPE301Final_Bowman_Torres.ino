@@ -3,16 +3,20 @@ Team Members (2): Natalie Bowman and Jessica Torres
 Due: 5/11/2024
 */
 
-//Includes the Arduino Stepper Library
-#include <Stepper.h>
-// Defines the number of steps per rotation
-const int stepsPerRevolution = 2038;
-// Creates an instance of stepper class
-// Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
-Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);
+//libraries included
+#include <Stepper.h>                  //Arduino Stepper Library
+#include <LiquidCrystal.h>            //Liquid Crystal Library used to initialize LCD screen
 
+//defined variables
 #define RDA 0x80
 #define TBE 0x20
+
+const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;          //LCD pins (constants)
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);                           //LCD setup with pins
+const int stepsPerRevolution = 2038;                                 // Defines the number of steps per rotation
+Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);        // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
+const byte interruptPin = 18;                                        //button attachInterrupt setup, pin18
+volatile byte buttonState = LOW;
 
 volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
 volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
@@ -52,9 +56,17 @@ volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
 
-//button attachInterrupt setup, pin18
-const byte interruptPin = 18;  
-volatile byte buttonState = LOW;
+//Degrees symbol
+byte customChar[8] = {
+  0b00100,
+  0b01010,
+  0b10001,
+  0b01010,
+  0b00100,
+  0b00000,
+  0b00000,
+  0b00000
+};
 
 //global variables
 int waterlevel = 0;
@@ -161,8 +173,24 @@ void fanMotor(int buttonsState){
   }
 }
 
-void clock(){
-  
+void myClock(){
+  DateTime now = RTC.now();
+  lcd.setCursor(0,0);
+  lcd.print("TIME: ");
+  lcd.print(now.hour(), DEC);
+  lcd.print(":");
+  lcd.print(now.minute(), DEC);
+  lcd.print(":");
+  lcd.print(now.second(), DEC); 
+    
+  lcd.setCursor(0,1);
+  lcd.print("DATE: ");
+  lcd.print(now.month(), DEC);
+  lcd.print("/");
+  lcd.print(now.day(), DEC);
+  lcd.print("/");
+  lcd.print(now.year(), DEC);
+  delay(1000);
 }
 
 void errorMessage(){
