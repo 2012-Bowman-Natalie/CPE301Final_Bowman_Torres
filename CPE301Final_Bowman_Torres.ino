@@ -13,7 +13,8 @@ Due: 5/11/2024
 //defined variables
 #define RDA 0x80
 #define TBE 0x20
-#define DHT11_PIN 7
+#define DHT_PIN 7
+#define DHT_TYPE
 
 //global variables
 volatile int waterlevel = 0;
@@ -30,7 +31,6 @@ const byte interruptPin = 18;                                        //button at
 //my_delay declarations for flag/interrupt
 volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
 volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
-volatile unsigned char *myTCCR1C = (unsigned char *) 0x82;
 volatile unsigned char *myTIMSK1 = (unsigned char *) 0x6F;
 volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
 volatile unsigned char *myTIFR1 =  (unsigned char *) 0x36;
@@ -72,7 +72,7 @@ volatile unsigned char* pin_l = (unsigned char*) 0x109;
 Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);        // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);                           //LCD setup with pins
 RTC_DS1307 RTC;
-dht DHT
+DHT dht(DHT_PIN, DHT_TYPE);
 
 //Degrees symbol custom character
 byte customChar[8] = {
@@ -140,15 +140,17 @@ unsigned int adc_read(unsigned char adc_channel_num){
 
 //delay function uses seconds 
 int my_delay(seconds){
-  unsigned int ticks = 15624;         //kept as variable for clarity
-  for(int i = 0; i < millis; i++){    //For loop to count 60 cycles (60 seconds)
-    *myTCCR1B &= 0xF8;                //make sure timer is off
+  unsigned int ticks = 15624;           //kept as variable for clarity
+  *myTCCR1A = 0x00;                     //Setting initial values of counters (16*10^6) / (1024) -1
+  *myTCCR1B = 0x00;
+  for(int i = 0; i < seconds; i++){     //For loop to count 60 cycles (60 seconds)
+    *myTCCR1B &= 0xF8;                  //make sure timer is off
     *myTCNT1 = (unsigned int) (65536 - ticks);  //counter
-    *myTCCR1B |= 0x05;                //Pre-scalar 1024 in order to scale to 1 Hz -> 1 sec
-    while((*myTIFR1 & 0x01) == 0);    //Wait for TIFR overflow flag bit to be set
-    *myTCCR1B &= 0xF8;                //Turn off the timer after getting delay
-    *myTIFR1 |= 0x01;                 //Clear the flag bit for next use
-  }return 1;                          //Return value of 1 when for loop is complete with iterations
+    *myTCCR1B |= 0x05;                  //Pre-scalar 1024 in order to scale to 1 Hz -> 1 sec
+    while((*myTIFR1 & 0x01) == 0);      //Wait for TIFR overflow flag bit to be set
+    *myTCCR1B &= 0xF8;                  //Turn off the timer after getting delay
+    *myTIFR1 |= 0x01;                   //Clear the flag bit for next use
+  }return 1;                            //Return value of 1 when for loop is complete with iterations
 }
 
 //Initialize LED states
@@ -198,6 +200,7 @@ void fanMotor(int buttonsState){
 
 //Checks if the water levels are within threshold, if not, it triggers following operations
 void waterresults(waterinfo){
+  *ddr_f = 0b10000000;        //initialize water sensor
   unsigned char flag = 0;
   int threshold = 100;
   if(waterinfo = threshold){
@@ -279,13 +282,11 @@ void button_ISR(){
 
 //main funtion
 void setup() {
-  // put your setup code here, to run once:
-  U0init(9600);          //initialized baud rate
-  Wire.begin();
-  RTC.begin();
-  //adc initialized
-  adc_init();
-  *ddr_f = 0b10000000;
+  U0init(9600);                  //initialized baud rate
+  adc_init();                    //adc initialized
+  Wire.begin();                  //Initialize RTC
+  RTC.begin();                   //Initialize RTC
+  LED_Setup();                   //Initialize LEDs
   if(flag == 1){
     errorMessage();
     flag = 0;
