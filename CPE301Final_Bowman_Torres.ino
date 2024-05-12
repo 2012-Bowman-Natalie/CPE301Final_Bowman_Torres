@@ -6,24 +6,36 @@ Due: 5/11/2024
 //libraries included
 #include <Stepper.h>                  //Arduino Stepper Library
 #include <LiquidCrystal.h>            //Liquid Crystal Library used to initialize LCD screen
+#include <Wire.h>                     //Used for RTC
+#include <RTClib.h>                   //Used for RTC
+#include <dht.h>                      //DHT Library to use temperature reading sensor
 
 //defined variables
 #define RDA 0x80
 #define TBE 0x20
+#define DHT11_PIN 7
+
+//global variables
+volatile int waterlevel = 0;
+volatile int flag = 0;
+volatile int waterinfo;
+volatile byte buttonState = LOW;
+volatile int state = 0;
+volatile unsigned int seconds = 0;
 
 const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;          //LCD pins (constants)
-LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);                           //LCD setup with pins
 const int stepsPerRevolution = 2038;                                 // Defines the number of steps per rotation
-Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);        // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
 const byte interruptPin = 18;                                        //button attachInterrupt setup, pin18
-volatile byte buttonState = LOW;
 
+//my_delay declarations for flag/interrupt
 volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
 volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
 volatile unsigned char *myTCCR1C = (unsigned char *) 0x82;
 volatile unsigned char *myTIMSK1 = (unsigned char *) 0x6F;
 volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
 volatile unsigned char *myTIFR1 =  (unsigned char *) 0x36;
+volatile unsigned char *portDDRB = (unsigned char *) 0x24;
+volatile unsigned char *portB = (unsigned char *) 0x25;
 //UART declarations
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
@@ -56,7 +68,13 @@ volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
 
-//Degrees symbol
+//initialize libraries used with pin/connection info
+Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);        // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);                           //LCD setup with pins
+RTC_DS1307 RTC;
+dht DHT
+
+//Degrees symbol custom character
 byte customChar[8] = {
   0b00100,
   0b01010,
@@ -68,59 +86,46 @@ byte customChar[8] = {
   0b00000
 };
 
-//global variables
-int waterlevel = 0;
-int flag = 0;
+//Set up ADC registers/bits
+void adc_init(){
+  // setup the A register
+  *my_ADCSRA |= 0b10000000;     // set bit   7 to 1 to enable the ADC
+  *my_ADCSRA &= 0b11011111;     // clear bit 6 to 0 to disable the ADC trigger mode
+  *my_ADCSRA &= 0b11110111;     // clear bit 5 to 0 to disable the ADC interrupt
+  *my_ADCSRA &= 0b11111000;     // clear bit 0-2 to 0 to set prescaler selection to slow reading
+  // setup the B register
+  *my_ADCSRB &= 0b11110111;     // clear bit 3 to 0 to reset the channel and gain bits
+  *my_ADCSRB &= 0b11111000;     // clear bit 2-0 to 0 to set free running mode
+  // setup the MUX Register
+  *my_ADMUX  &= 0b01111111;     // clear bit 7 to 0 for AVCC analog reference
+  *my_ADMUX  |= 0b01000000;     // set bit   6 to 1 for AVCC analog reference
+  *my_ADMUX  &= 0b11011111;     // clear bit 5 to 0 for right adjust result
+  *my_ADMUX  &= 0b11100000;     // clear bit 4-0 to 0 to reset the channel and gain bits
+}
 
-//main funtion
-void setup() {
-  // put your setup code here, to run once:
-  U0init(9600);          //initialized baud rate
-  //Set up LEDs
+//ADC set to mode
+unsigned int adc_read(unsigned char adc_channel_num){
+  *my_ADMUX  &= 0b11100000;         // clear the channel selection bits (MUX 4:0)
+  *my_ADCSRB &= 0b11110111;         // clear the channel selection bits (MUX 5)
+  if(adc_channel_num > 7){          // set the channel number
+    adc_channel_num -= 8;           // set the channel selection bits, but remove the most significant bit (bit 3)
+    *my_ADCSRB |= 0b00001000;       // set MUX bit 5
+  }
+  *my_ADMUX  += adc_channel_num;    // set the channel selection bits
+  *my_ADCSRA |= 0x40;               // set bit 6 of ADCSRA to 1 to start a conversion
+  while((*my_ADCSRA & 0x40) != 0);  // wait for the conversion to complete
+  return *my_ADC_DATA;               // return the result in the ADC data register
+}
+
+//Initialize LED states
+void LED_Setup(){
   *ddr_a |= 0x01;
   *ddr_c |= 0x01;
   *ddr_g |= 0x01;
   *ddr_l |= 0x01;
-  //adc initialized
-  adc_init();
-  *ddr_f = 0b10000000;
-  if(flag == 1){
-    errorMessage();
-    flag = 0;
-  }
-  int temperature = tempRead();        //Store temperature values recorded
-
-  //will go under function under select condition
-  digitalPintoInterrupt(interruptPin);
-  attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
-
-  Wire.begin();
-  RTC.begin();
-
-  if (! RTC.isrunning()) {
-    Serial.println("RTC is NOT running!");
-    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
-  int input = adc_read(7);
-  waterresults(input);
-}
-
-//Attatchinterupt, used to interupt 
-void button_ISR(){
-  fanMotor(0);
-}
-
-void disabled(){
-  lightSwitch(10);
-  // make sure fan motor is off include code later
-}
-
-void lightSwitch(int state){
+void lightSwitch(state){
   if (state == 10){
     //Yellow LED only ON all others OFF
     *port_g |= (0x01);
@@ -128,7 +133,7 @@ void lightSwitch(int state){
     *port_c &= ~(0x01 << 3);
     *port_l &= ~(0x01 << 3);
   } else if(state == 11){
-    //Greeen LED only ON all others OFF
+    //Green LED only ON all others OFF
     *port_c |= (0x01);   
     *port_a &= ~(0x01 << 3);
     *port_g &= ~(0x01 << 3);
@@ -150,22 +155,123 @@ void lightSwitch(int state){
   }
 }
 
+//Checks if the water levels are within threshold, if not, it triggers following operations
+void waterresults(waterinfo){
+  unsigned char flag = 0;
+  int threshold = 100;
+  if(waterinfo = threshold){
+    flag = 1;
+  } else if(waterlevel < threshold){
+    flag = 1;
+  } else{
+    flag = 0;
+  }
+}
+
+//Prints date and time to LCD screen
+void myClock(){
+  DateTime now = RTC.now();
+  lcd.setCursor(0,0);
+  lcd.print("TIME: ");
+  lcd.print(now.hour(), DEC);
+  lcd.print(":");
+  lcd.print(now.minute(), DEC);
+  lcd.print(":");
+  lcd.print(now.second(), DEC); 
+  lcd.setCursor(0,1);
+  lcd.print("DATE: ");
+  lcd.print(now.month(), DEC);
+  lcd.print("/");
+  lcd.print(now.day(), DEC);
+  lcd.print("/");
+  lcd.print(now.year(), DEC);
+  delay(1000);
+}
+
+//Prints error message to LCD screen if conditions are not met
+void errorMessage(){
+  lightSwitch(20);        //Red LED ON
+  lcd.begin(16,2);        //Set parameters (# of columns, # of rows)
+  lcd.setCursor(5,0);     //Place cursor to begin write
+  lcd.write("ERROR");     //Print error message
+  delay(1000);         
+  lcd.setCursor(2,0);
+  lcd.write("WATER LEVEL");
+  lcd.setCursor(4, 1);
+  lcd.write("TOO LOW");
+  delay(1000);
+  lcd.clear()
+}
+
+//Updates humidty and temperature readings. Displays onto LCD screen
+void statusUpdates(int humidity, int temperature){
+    lcd.createChar(1, customChar);
+    int chk = DHT.read11(DHT11_PIN);
+    lcd.setCursor(0,0);
+    lcd.write("Humidity: ");
+    lcd.write(DHT.humidity);
+    lcd.setCursor(0,1);
+    lcd.write("Temp in C: ");
+    lcd.write(DHT.temperature);
+    lcd.write((byte)1);
+    delay(500);
+    lcd.clear();
+  }
+}
+
+//main funtion
+void setup() {
+  // put your setup code here, to run once:
+  U0init(9600);          //initialized baud rate
+  Wire.begin();
+  RTC.begin();
+  //adc initialized
+  adc_init();
+  *ddr_f = 0b10000000;
+  if(flag == 1){
+    errorMessage();
+    flag = 0;
+  }
+  int temperature = tempRead();        //Store temperature values recorded
+    if (! RTC.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+
+  //will go under function under select condition
+  digitalPintoInterrupt(interruptPin);
+  attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
+
+  if (! RTC.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
+  int input = adc_read(7);
+  waterresults(input);
+}
+
+//Attatchinterupt, used to interupt 
+void button_ISR(){
+  fanMotor(0);
+}
+
+void disabled(){
+  lightSwitch(10);        //Greeb LED on
+  // make sure fan motor is off include code later
+}
+
 void updates(){
   
 }
 
 void idle(){
-  *port_c |= (0x01);   //turns on green light all others off
-  *port_a &= ~(0x01 << 3);
-  *port_g &= ~(0x01 << 3);
-  *port_l &= ~(0x01 << 3);
+  lightSwitch(11);
   // make sure fan motor is off include code later
-}
-
-//check and return temperature value
-int tempRead(){
-  int chk = DHT.read11(DHT11_PIN);
-  return chk;
 }
 
 //Function to turn fan MOTOR on/off
@@ -181,96 +287,18 @@ void fanMotor(int buttonsState){
   }
 }
 
-void myClock(){
-  DateTime now = RTC.now();
-  lcd.setCursor(0,0);
-  lcd.print("TIME: ");
-  lcd.print(now.hour(), DEC);
-  lcd.print(":");
-  lcd.print(now.minute(), DEC);
-  lcd.print(":");
-  lcd.print(now.second(), DEC); 
-    
-  lcd.setCursor(0,1);
-  lcd.print("DATE: ");
-  lcd.print(now.month(), DEC);
-  lcd.print("/");
-  lcd.print(now.day(), DEC);
-  lcd.print("/");
-  lcd.print(now.year(), DEC);
-  delay(1000);
-}
 
-void errorMessage(){
-  lcd.begin(16,2);      //Set parameters (# of columns, # of rows)
-  lcd.setCursor(5,0);   //Place cursor to begin write
-  lcd.write("ERROR");   //Print error message
-  my_delay(1000);          //  !!!!!! check if valid delay function
-  lcd.setCursor(2,0);
-  lcd.write("WATER LEVEL");
-  lcd.setCursor(4, 1);
-  lcd.write("TOO LOW");
-  my_delay(1000);
-  lcd.clear();
-
-  lightSwitch(20);        //Red LED ON
-}
-
-//Updates humidty and temperature readings. Displays onto LCD screen
-void statusUpdates(int humidity, int temperature){
-  //Scrolls text to the left to display full text
-  for (int i = 13; i >= 1; i--){
-    int chk = DHT.read11(DHT11_PIN);
-    lcd.setCursor(0,0);
-    lcd.write("Humidity: ");
-    lcd.write(DHT.humidity);
-    lcd.setCursor(i,1);
-    lcd.write("Temperature: ");
-    lcd.write(DHT.temperature);
-    my_delay(300);
-    lcd.clear();
-  }
-}
-
-//delay function uses milliseconds 
-int my_delay(unsigned int millis){
-  unsigned int ticks = 16000;         //kept as variable for clarity
+//delay function uses seconds 
+int my_delay(seconds){
+  unsigned int ticks = 15624;         //kept as variable for clarity
   for(int i = 0; i < millis; i++){    //For loop to count 60 cycles (60 seconds)
     *myTCCR1B &= 0xF8;                //make sure timer is off
     *myTCNT1 = (unsigned int) (65536 - ticks);  //counter
-    *myTCCR1B |= 0x01;                //Pre-scalar 1 in order to scale to 1 kHz -> 0.001 sec
+    *myTCCR1B |= 0x05;                //Pre-scalar 1024 in order to scale to 1 Hz -> 1 sec
     while((*myTIFR1 & 0x01) == 0);    //Wait for TIFR overflow flag bit to be set
     *myTCCR1B &= 0xF8;                //Turn off the timer after getting delay
     *myTIFR1 |= 0x01;                 //Clear the flag bit for next use
   }return 1;                          //Return value of 1 when for loop is complete with iterations
-}
-void waterresults(unsigned int waterinfo){
-  unsigned char flag = 0;
-  int threshold = 100;
-  if(waterinfo = threshold){
-    flag = 1;
-  } else if(waterlevel < threshold){
-    flag = 1;
-  } else{
-    flag = 0;
-  }
-}
-
-void adc_init()
-{
-  // setup the A register
-  *my_ADCSRA |= 0b10000000; // set bit   7 to 1 to enable the ADC
-  *my_ADCSRA &= 0b11011111; // clear bit 6 to 0 to disable the ADC trigger mode
-  *my_ADCSRA &= 0b11110111; // clear bit 5 to 0 to disable the ADC interrupt
-  *my_ADCSRA &= 0b11111000; // clear bit 0-2 to 0 to set prescaler selection to slow reading
-  // setup the B register
-  *my_ADCSRB &= 0b11110111; // clear bit 3 to 0 to reset the channel and gain bits
-  *my_ADCSRB &= 0b11111000; // clear bit 2-0 to 0 to set free running mode
-  // setup the MUX Register
-  *my_ADMUX  &= 0b01111111; // clear bit 7 to 0 for AVCC analog reference
-  *my_ADMUX  |= 0b01000000; // set bit   6 to 1 for AVCC analog reference
-  *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
-  *my_ADMUX  &= 0b11100000; // clear bit 4-0 to 0 to reset the channel and gain bits
 }
 
 void U0init(unsigned long U0baud)
@@ -298,28 +326,4 @@ void U0putchar(unsigned char U0pdata)
   *myUDR0 = U0pdata;
 }
 
-
-unsigned int adc_read(unsigned char adc_channel_num)
-{
-  // clear the channel selection bits (MUX 4:0)
-  *my_ADMUX  &= 0b11100000;
-  // clear the channel selection bits (MUX 5)
-  *my_ADCSRB &= 0b11110111;
-  // set the channel number
-  if(adc_channel_num > 7)
-  {
-    // set the channel selection bits, but remove the most significant bit (bit 3)
-    adc_channel_num -= 8;
-    // set MUX bit 5
-    *my_ADCSRB |= 0b00001000;
-  }
-  // set the channel selection bits
-  *my_ADMUX  += adc_channel_num;
-  // set bit 6 of ADCSRA to 1 to start a conversion
-  *my_ADCSRA |= 0x40;
-  // wait for the conversion to complete
-  while((*my_ADCSRA & 0x40) != 0);
-  // return the result in the ADC data register
-  return *my_ADC_DATA;
-}
 
