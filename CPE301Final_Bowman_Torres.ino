@@ -13,16 +13,16 @@ Due: 5/11/2024
 //defined variables
 #define RDA 0x80
 #define TBE 0x20
-#define DHT_PIN 7
-#define DHT_TYPE
+#define DHT11_PIN 7
 
 //global variables
-volatile int waterlevel = 0;
+volatile int waterlevel;
 volatile int flag = 0;
-volatile int waterinfo;
 volatile byte buttonState = LOW;
 volatile int state = 0;
 volatile unsigned int seconds = 0;
+volatile float temperature;
+volatile float humidity;
 
 const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;          //LCD pins (constants)
 const int stepsPerRevolution = 2038;                                 // Defines the number of steps per rotation
@@ -72,19 +72,7 @@ volatile unsigned char* pin_l = (unsigned char*) 0x109;
 Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);        // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);                           //LCD setup with pins
 RTC_DS1307 RTC;
-DHT dht(DHT_PIN, DHT_TYPE);
-
-//Degrees symbol custom character
-byte customChar[8] = {
-  0b00100,
-  0b01010,
-  0b10001,
-  0b01010,
-  0b00100,
-  0b00000,
-  0b00000,
-  0b00000
-};
+dht DHT;
 
 void U0init(unsigned long U0baud){
  unsigned long FCPU = 16000000;
@@ -198,12 +186,19 @@ void fanMotor(int buttonsState){
   }
 }
 
+int temperature(){
+  int chk = DHT.read11(DHT11_PIN);
+  temperature = dht.readTemperature();
+  humidity = dht.readHumidity();
+  return chk;
+}
+
 //Checks if the water levels are within threshold, if not, it triggers following operations
-void waterresults(waterinfo){
+void waterresults(waterlevel){
   *ddr_f = 0b10000000;        //initialize water sensor
   unsigned char flag = 0;
   int threshold = 100;
-  if(waterinfo = threshold){
+  if(waterlevel = threshold){
     flag = 1;
   } else if(waterlevel < threshold){
     flag = 1;
@@ -248,22 +243,18 @@ void errorMessage(){
 }
 
 //Updates humidty and temperature readings. Displays onto LCD screen
-void statusUpdates(int humidity, int temperature){
-    lcd.createChar(1, customChar);
-    int chk = DHT.read11(DHT11_PIN);
+void statusUpdates(humidity, temperature){
     lcd.setCursor(0,0);
     lcd.write("Humidity: ");
-    lcd.write(DHT.humidity);
+    lcd.write(humidity);
     lcd.setCursor(0,1);
-    lcd.write("Temp in C: ");
-    lcd.write(DHT.temperature);
-    lcd.write((byte)1);
+    lcd.write("Temp: ");
+    lcd.write(temperature);
+    lcd.write((char)223);
     delay(500);
     lcd.clear();
   }
 }
-
-
 
 void disabled(){
   lightSwitch(10);        //Greeb LED on
@@ -291,6 +282,7 @@ void setup() {
     errorMessage();
     flag = 0;
   }
+  
   int temperature = tempRead();        //Store temperature values recorded
     if (! RTC.isrunning()) {
     Serial.println("RTC is NOT running!");
@@ -309,9 +301,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  int oneMinute = my_delay(60000);      //value int set for delay, used for true/false
+  int oneMinute = my_delay(60);      //value int set for delay, used for true/false
   int input = adc_read(7);
   waterresults(input);
+  if(oneMinute == 1){
+    
+  }
+  
 }
 
 
