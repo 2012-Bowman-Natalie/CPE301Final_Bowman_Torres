@@ -246,10 +246,11 @@ void errorMessage(){
 void statusUpdates(humidity, temperature){
     lcd.setCursor(0,0);
     lcd.write("Humidity: ");
-    lcd.write(humidity);
+    lcd.write(humidity, 1);
+    lcd.write("%");
     lcd.setCursor(0,1);
     lcd.write("Temp: ");
-    lcd.write(temperature);
+    lcd.write(temperature, 2);
     lcd.write((char)223);
     delay(500);
     lcd.clear();
