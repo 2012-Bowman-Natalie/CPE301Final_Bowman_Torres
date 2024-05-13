@@ -13,7 +13,7 @@ Due: 5/11/2024
 //defined variables
 #define RDA 0x80
 #define TBE 0x20
-#define DHT11_PIN 7
+#define DHT11_PIN A7
 
 //global variables
 volatile int waterlevel;
@@ -199,7 +199,7 @@ int temperatureRead(){
 
 //Checks if the water levels are within threshold, if not, it triggers following operations
 void waterresults(int waterlevel){
-  if(waterlevel = w_threshold){
+  if(waterlevel == w_threshold){
     flag = 1;
   } else if(waterlevel < w_threshold){
     flag = 1;
@@ -262,17 +262,21 @@ void disabled(){
   lightSwitch(10);        //Yellow LED on
   fanMotor(0);             // make sure fan motor is off
   oneMinute = 0;           //Disables readings
+  attachInterrupt(digitalPinToInterrupt(interruptPin), button_ISR, RISING);
 }
 
 void idle(){
-  lightSwitch(11);
+  lightSwitch(10);
   fanMotor(0);          // make sure fan motor is off
   waterresults(waterlevel);
   if(flag == 1){
    lcd.clear();
    errorMessage();
    flag = 0;
-  }
+  }else if(temperature > t_threshold);
+  running(temperature, waterlevel);
+  oneMinute = 0;
+}
 }
 
 void running(int temperature, int waterlevel){
@@ -287,7 +291,7 @@ void running(int temperature, int waterlevel){
 
 //Attatchinterupt, used to interupt 
 void button_ISR(){
-   disabled();
+   idle();
    buttonState = LOW;
   }
 
@@ -298,25 +302,31 @@ void setup() {
   Wire.begin();                  //Initialize RTC
   rtc.begin();                   //Initialize RTC
   lcd.begin(16,2);               //Set parameters (# of columns, # of rows)
-  *ddr_f = 0b10000000;        //initialize water sensor
+  *ddr_f &= 0b01111111;        //initialize water sensor
   LED_Setup();                   //Initialize LEDs
 }
 
 void loop() {
   myClock();
   oneMinute = my_delay(60);      //value int set for delay, used for true/false
-  int waterlevel = adc_read(7);
-  int temperature = temperatureRead();        //Store temperature values recorded
+  waterlevel = adc_read(7);
+  check = temperatureRead();        //Store temperature values recorded
 
   if(oneMinute == 1){
    lcd.clear();
+   waterresults(waterlevel);
    statusUpdates(waterlevel);
    if(waterlevel > w_threshold && temperature > t_threshold){
-    running(temperature, waterlevel);
-   }else{
+     running(temperature, waterlevel);
+   }else if(waterlevel < w_threshold){
+     errorMessage();
+   }else if(temperature <= t_threshold){
      idle();
-   }oneMinute = 0;
- }
+   } else{
+     myClock();
+     oneMinute = 0;
+   }
+  }
 }
 
 
