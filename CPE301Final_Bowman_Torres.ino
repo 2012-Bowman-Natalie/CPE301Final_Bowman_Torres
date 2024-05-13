@@ -228,6 +228,7 @@ void myClock(){
 
 //Prints error message to LCD screen if conditions are not met
 void errorMessage(){
+  attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
   lightSwitch(20);        //Red LED ON
   fanMotor(0);            //Motor is off
   lcd.setCursor(5,0);     //Place cursor to begin write
@@ -273,12 +274,13 @@ void idle(){
   }
 }
 
-void running(int temperature){
+void running(int temperature, int waterlevel){
  lightSwitch(22);
  fanMotor(1);
- if(temperature < t_threshold){
+ if(temperature <= t_threshold){
   idle();
- }
+ }else if (waterlevel < w_threshold){
+  errorMessage();
 }
 
 //Attatchinterupt, used to interupt 
@@ -300,6 +302,7 @@ void setup() {
 }
 
 void loop() {
+  myClock();
   int oneMinute = my_delay(60);      //value int set for delay, used for true/false
   int waterlevel = adc_read(7);
   int check = temperatureRead();
@@ -308,10 +311,15 @@ void loop() {
   if(oneMinute == 1){
    lcd.clear();
    statusUpdates(check);
-   attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
-   oneMinute = 0;
+   if(waterlevel > w_threshold && temperature > t_threshold){
+    running(temperature, waterlevel);
+    attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING)
+     }else{
+       idle();
+    }oneMinute = 0;
   }
 }
+
 
 
 
