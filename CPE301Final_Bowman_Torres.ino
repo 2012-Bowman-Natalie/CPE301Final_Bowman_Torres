@@ -310,7 +310,7 @@ void loop() {
 
   if(oneMinute == 1){
    lcd.clear();
-   statusUpdates(check);
+   statusUpdates(waterlevel);
    if(waterlevel > w_threshold && temperature > t_threshold){
     running(temperature, waterlevel);
    }else{
