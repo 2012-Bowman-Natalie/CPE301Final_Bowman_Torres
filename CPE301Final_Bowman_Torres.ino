@@ -231,7 +231,7 @@ void myClock(){
 //Prints error message to LCD screen if conditions are not met
 void errorMessage(){
   attachInterrupt(digitalPinToInterrupt(interruptPin), button_ISR, RISING);
-  lightSwitch(20);        //Red LED ON
+  lightSwitch(22);        //Red LED ON
   fanMotor(0);            //Motor is off
   lcd.setCursor(5,0);     //Place cursor to begin write
   lcd.write("ERROR");     //Print error message
@@ -259,14 +259,14 @@ void statusUpdates(int chk){
 }
 
 void disabled(){
-  lightSwitch(10);        //Yellow LED on
+  lightSwitch(37);        //Yellow LED on
   fanMotor(0);             // make sure fan motor is off
   oneMinute = 0;           //Disables readings
   attachInterrupt(digitalPinToInterrupt(interruptPin), button_ISR, RISING);
 }
 
 void idle(){
-  lightSwitch(10);
+  lightSwitch(41);
   fanMotor(0);          // make sure fan motor is off
   waterresults(waterlevel);
   if(flag == 1){
@@ -280,7 +280,7 @@ void idle(){
 }
 
 void running(int temperature, int waterlevel){
- lightSwitch(22);
+ lightSwitch(49);
  fanMotor(1);
  if(temperature <= t_threshold){
   idle();
