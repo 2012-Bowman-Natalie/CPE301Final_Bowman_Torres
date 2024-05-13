@@ -314,10 +314,10 @@ void loop() {
    if(waterlevel > w_threshold && temperature > t_threshold){
     running(temperature, waterlevel);
     attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING)
-     }else{
-       idle();
-    }oneMinute = 0;
-  }
+   }else{
+     idle();
+   }oneMinute = 0;
+ }
 }
 
 
