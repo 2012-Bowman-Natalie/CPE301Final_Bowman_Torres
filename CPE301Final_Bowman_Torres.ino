@@ -230,7 +230,7 @@ void myClock(){
 //Prints error message to LCD screen if conditions are not met
 void errorMessage(){
   lightSwitch(20);        //Red LED ON
-  lcd.begin(16,2);        //Set parameters (# of columns, # of rows)
+  fanMotor(0);            //Motor is off
   lcd.setCursor(5,0);     //Place cursor to begin write
   lcd.write("ERROR");     //Print error message
   my_delay(2);         
@@ -260,18 +260,32 @@ void statusUpdates(int chk){
 void disabled(){
   lightSwitch(10);        //Yellow LED on
   fanMotor(0);             // make sure fan motor is off
+  oneMinute = 0;           //Disables readings
 }
 
 void idle(){
   lightSwitch(11);
   fanMotor(0);          // make sure fan motor is off
+  waterresults(waterlevel);
+  if(flag == 1){
+   lcd.clear();
+   errorMessage();
+   flag = 0;
+  }
+}
+
+void running(int temperature){
+ lightSwitch(22);
+ fanMotor(1);
+ if(temperature < t_threshold){
+  idle();
+ }
 }
 
 //Attatchinterupt, used to interupt 
 void button_ISR(){
   if(buttonState == 0){          //stop motor if function is called BY INTERRUPT
-    myStepper.setSpeed(0);
-    myStepper.step(0);
+   disabled();
   }
 
 //main funtion
@@ -280,36 +294,24 @@ void setup() {
   adc_init();                    //adc initialized
   Wire.begin();                  //Initialize RTC
   rtc.begin();                   //Initialize RTC
+  lcd.begin(16,2);               //Set parameters (# of columns, # of rows)
   LED_Setup();                   //Initialize LEDs
-  if(flag == 1){
-    errorMessage();
-    flag = 0;
-  }
-  
-  int temperature = temperatureRead();        //Store temperature values recorded
-    if (! rtc.isrunning()) {
-    Serial.println("RTC is NOT running!");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
-
-  //will go under function under select condition
   digitalPintoInterrupt(interruptPin);
   attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
-
-  if (! RTC.isrunning()) {
-    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   int oneMinute = my_delay(60);      //value int set for delay, used for true/false
-  int input = adc_read(7);
-  waterresults(input);
+  int waterlevel = adc_read(7);
+  int check = temperatureRead();
+  int temperature = temperatureRead();        //Store temperature values recorded
+
   if(oneMinute == 1){
-    
+   lcd.clear();
+   statusUpdates(check);
+   attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
+   oneMinute = 0;
   }
-  
 }
 
 
