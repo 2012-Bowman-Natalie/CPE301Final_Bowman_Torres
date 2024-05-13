@@ -26,6 +26,8 @@ volatile float humidity;
 
 const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;          //LCD pins (constants)
 const int stepsPerRevolution = 2038;                                 // Defines the number of steps per rotation
+const int w_threshold = 150;
+const int l_threshold = 22;
 const byte interruptPin = 18;                                        //button attachInterrupt setup, pin18
 
 //my_delay declarations for flag/interrupt
@@ -195,18 +197,15 @@ int temperature(){
 
 //Checks if the water levels are within threshold, if not, it triggers following operations
 void waterresults(waterlevel){
-  *ddr_f = 0b10000000;        //initialize water sensor
-  unsigned char flag = 0;
-  int threshold = 150;
-  if(waterlevel = threshold){
+  if(waterlevel = w_threshold){
     flag = 1;
-  } else if(waterlevel < threshold){
+  } else if(waterlevel < w_threshold){
     flag = 1;
   } else{
     flag = 0;
   }
 }
-
+ 
 //Prints date and time to LCD screen
 void myClock(){
   DateTime now = rtc.now();
@@ -284,8 +283,8 @@ void running(int temperature){
 
 //Attatchinterupt, used to interupt 
 void button_ISR(){
-  if(buttonState == 0){          //stop motor if function is called BY INTERRUPT
    disabled();
+   buttonState = LOW;
   }
 
 //main funtion
@@ -295,9 +294,9 @@ void setup() {
   Wire.begin();                  //Initialize RTC
   rtc.begin();                   //Initialize RTC
   lcd.begin(16,2);               //Set parameters (# of columns, # of rows)
+  *ddr_f = 0b10000000;        //initialize water sensor
   LED_Setup();                   //Initialize LEDs
   digitalPintoInterrupt(interruptPin);
-  attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
 }
 
 void loop() {
