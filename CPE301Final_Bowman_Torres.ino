@@ -230,7 +230,7 @@ void myClock(){
 
 //Prints error message to LCD screen if conditions are not met
 void errorMessage(){
-  attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), button_ISR, RISING);
   lightSwitch(20);        //Red LED ON
   fanMotor(0);            //Motor is off
   lcd.setCursor(5,0);     //Place cursor to begin write
@@ -300,7 +300,6 @@ void setup() {
   lcd.begin(16,2);               //Set parameters (# of columns, # of rows)
   *ddr_f = 0b10000000;        //initialize water sensor
   LED_Setup();                   //Initialize LEDs
-  digitalPintoInterrupt(interruptPin);
 }
 
 void loop() {
@@ -314,7 +313,6 @@ void loop() {
    statusUpdates(check);
    if(waterlevel > w_threshold && temperature > t_threshold){
     running(temperature, waterlevel);
-    attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
    }else{
      idle();
    }oneMinute = 0;
