@@ -23,6 +23,7 @@ volatile int state = 0;
 volatile unsigned int seconds = 0;
 volatile float temperature;
 volatile float humidity;
+volatile int oneMinute = 0;
 
 const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;          //LCD pins (constants)
 const int stepsPerRevolution = 2038;                                 // Defines the number of steps per rotation
@@ -132,7 +133,7 @@ unsigned int adc_read(unsigned char adc_channel_num){
 }
 
 //delay function uses seconds 
-int my_delay(seconds){
+int my_delay(int seconds){
   unsigned int ticks = 15624;           //kept as variable for clarity
   *myTCCR1A = 0x00;                     //Setting initial values of counters (16*10^6) / (1024) -1
   *myTCCR1B = 0x00;
@@ -154,7 +155,7 @@ void LED_Setup(){
   *ddr_l |= 0x01;
 }
 
-void lightSwitch(state){
+void lightSwitch(int state){
   if (state == 10){            //Yellow LED only ON all others OFF
     *port_g |= (0x01);
     *port_a &= ~(0x01 << 3);
@@ -188,15 +189,16 @@ void fanMotor(int reading){
   } else {
     myStepper.setSpeed(0);   //OFF
     myStepper.step(0);
+  }
 }
 
-int temperature(){
+int temperatureRead(){
   int chk = DHT.read11(DHT11_PIN);
   return chk;
 }
 
 //Checks if the water levels are within threshold, if not, it triggers following operations
-void waterresults(waterlevel){
+void waterresults(int waterlevel){
   if(waterlevel = w_threshold){
     flag = 1;
   } else if(waterlevel < w_threshold){
@@ -239,22 +241,21 @@ void errorMessage(){
   lcd.setCursor(4, 1);
   lcd.write("TOO LOW");
   my_delay(2);
-  lcd.clear()
+  lcd.clear();
 }
 
 //Updates humidty and temperature readings. Displays onto LCD screen
 void statusUpdates(int chk){
-    lcd.setCursor(0,0);
-    lcd.write("Humidity: ");
-    lcd.print(DHT.humidity, 1);
-    lcd.write("%");
-    lcd.setCursor(0,1);
-    lcd.write("Temp: ");
-    lcd.print(DHT.temperature, 1);
-    lcd.write((char)223);
-    my_delay(2);
-    lcd.clear();
-  }
+  lcd.setCursor(0,0);
+  lcd.write("Humidity: ");
+  lcd.print(DHT.humidity, 1);
+  lcd.write("%");
+  lcd.setCursor(0,1);
+  lcd.write("Temp: ");
+  lcd.print(DHT.temperature, 1);
+  lcd.write((char)223);
+  my_delay(2);
+  lcd.clear();
 }
 
 void disabled(){
@@ -279,8 +280,9 @@ void running(int temperature, int waterlevel){
  fanMotor(1);
  if(temperature <= t_threshold){
   idle();
- }else if (waterlevel < w_threshold){
+ } else if (waterlevel < w_threshold){
   errorMessage();
+ }
 }
 
 //Attatchinterupt, used to interupt 
@@ -303,9 +305,8 @@ void setup() {
 
 void loop() {
   myClock();
-  int oneMinute = my_delay(60);      //value int set for delay, used for true/false
+  oneMinute = my_delay(60);      //value int set for delay, used for true/false
   int waterlevel = adc_read(7);
-  int check = temperatureRead();
   int temperature = temperatureRead();        //Store temperature values recorded
 
   if(oneMinute == 1){
@@ -313,7 +314,7 @@ void loop() {
    statusUpdates(check);
    if(waterlevel > w_threshold && temperature > t_threshold){
     running(temperature, waterlevel);
-    attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING)
+    attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
    }else{
      idle();
    }oneMinute = 0;
