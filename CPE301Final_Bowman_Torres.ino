@@ -48,11 +48,11 @@ volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
 volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
-//red LED pin 29
+//red LED pin 22
 volatile unsigned char* port_a = (unsigned char*) 0x22;
 volatile unsigned char* ddr_a = (unsigned char*) 0x21;
 volatile unsigned char* pin_a = (unsigned char*) 0x20;
-//yellow LED pin 31
+//yellow LED pin 37
 volatile unsigned char* port_c = (unsigned char*) 0x28;
 volatile unsigned char* ddr_c = (unsigned char*) 0x27;
 volatile unsigned char* pin_c = (unsigned char*) 0x26;
@@ -64,7 +64,7 @@ volatile unsigned char *port_f = (unsigned char *) 0x31;
 volatile unsigned char* port_g = (unsigned char*) 0x34;
 volatile unsigned char* ddr_g = (unsigned char*) 0x33;
 volatile unsigned char* pin_g = (unsigned char*) 0x32;
-//blue LED pin 43
+//blue LED pin 49
 volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
@@ -156,22 +156,22 @@ void LED_Setup(){
 }
 
 void lightSwitch(int state){
-  if (state == 10){            //Yellow LED only ON all others OFF
-    *port_g |= (0x01);
-    *port_a &= ~(0x01 << 3);
-    *port_c &= ~(0x01 << 3);
-    *port_l &= ~(0x01 << 3);
-  } else if(state == 11){      //Green LED only ON all others OFF
-    *port_c |= (0x01);   
-    *port_a &= ~(0x01 << 3);
-    *port_g &= ~(0x01 << 3);
-    *port_l &= ~(0x01 << 3);
-  } else if(state == 20){      //Red LED ON pnly all others OFF
+  if(state == 22){      //Red LED ON pnly all others OFF
     *port_a |= (0x01);
     *port_c &= ~(0x01 << 3);
     *port_g &= ~(0x01 << 3);
     *port_l &= ~(0x01 << 3);
-  } else if(state == 22){      //Blue LED only ON all others OFF
+  } else if(state == 37){      //Yellow LED only ON all others OFF
+    *port_c |= (0x01);   
+    *port_a &= ~(0x01 << 3);
+    *port_g &= ~(0x01 << 3);
+    *port_l &= ~(0x01 << 3);
+  }else if (state == 41){            //Green LED only ON all others OFF
+    *port_g |= (0x01);
+    *port_a &= ~(0x01 << 3);
+    *port_c &= ~(0x01 << 3);
+    *port_l &= ~(0x01 << 3);
+  } else if(state == 49){      //Blue LED only ON all others OFF
     *port_l |= (0x01);
     *port_c &= ~(0x01 << 3);
     *port_g &= ~(0x01 << 3);
@@ -179,7 +179,7 @@ void lightSwitch(int state){
   }else {
     1 == 1;
   }
-}
+
 
 //Function to turn fan MOTOR on/off
 void fanMotor(int reading){
