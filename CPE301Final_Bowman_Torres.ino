@@ -34,8 +34,6 @@ volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
 volatile unsigned char *myTIMSK1 = (unsigned char *) 0x6F;
 volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
 volatile unsigned char *myTIFR1 =  (unsigned char *) 0x36;
-volatile unsigned char *portDDRB = (unsigned char *) 0x24;
-volatile unsigned char *portB = (unsigned char *) 0x25;
 //UART declarations
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
@@ -67,11 +65,16 @@ volatile unsigned char* pin_g = (unsigned char*) 0x32;
 volatile unsigned char* port_l = (unsigned char*) 0x10B;
 volatile unsigned char* ddr_l = (unsigned char*) 0x10A;
 volatile unsigned char* pin_l = (unsigned char*) 0x109;
+//Port B register pointers
+volatile unsigned char* port_b = (unsigned char*) 0x25; 
+volatile unsigned char* ddr_b  = (unsigned char*) 0x24;
+volatile unsigned char* pin_b  = (unsigned char*) 0x23; 
+
 
 //initialize libraries used with pin/connection info
 Stepper myStepper = Stepper(stepsPerRevolution, 7, 9, 8, 10);        // Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);                           //LCD setup with pins
-RTC_DS1307 RTC;
+RTC_DS1307 rtc;
 dht DHT;
 
 void U0init(unsigned long U0baud){
@@ -176,20 +179,17 @@ void lightSwitch(state){
 }
 
 //Function to turn fan MOTOR on/off
-void fanMotor(int buttonsState){
-  if (buttonState == 0){          //stop motor if function is called BY INTERRUPT
-    myStepper.setSpeed(0);
+void fanMotor(int reading){
+  if (reading != 0){
+    myStepper.setSpeed(10);   //Rotate CcW slowly at 5RPM
+    myStepper.step(stepsPerRevolution);
+  } else {
+    myStepper.setSpeed(0);   //OFF
     myStepper.step(0);
-  } else {                        //Rotate CW slowly at 5RPM
-    myStepper.setSpeed(5);
-    myStepper.step(-stepsPerRevolution);
-  }
 }
 
 int temperature(){
   int chk = DHT.read11(DHT11_PIN);
-  temperature = dht.readTemperature();
-  humidity = dht.readHumidity();
   return chk;
 }
 
@@ -197,7 +197,7 @@ int temperature(){
 void waterresults(waterlevel){
   *ddr_f = 0b10000000;        //initialize water sensor
   unsigned char flag = 0;
-  int threshold = 100;
+  int threshold = 150;
   if(waterlevel = threshold){
     flag = 1;
   } else if(waterlevel < threshold){
@@ -209,7 +209,7 @@ void waterresults(waterlevel){
 
 //Prints date and time to LCD screen
 void myClock(){
-  DateTime now = RTC.now();
+  DateTime now = rtc.now();
   lcd.setCursor(0,0);
   lcd.print("TIME: ");
   lcd.print(now.hour(), DEC);
@@ -224,7 +224,7 @@ void myClock(){
   lcd.print(now.day(), DEC);
   lcd.print("/");
   lcd.print(now.year(), DEC);
-  delay(1000);
+  my_delay(2);
 }
 
 //Prints error message to LCD screen if conditions are not met
@@ -233,61 +233,63 @@ void errorMessage(){
   lcd.begin(16,2);        //Set parameters (# of columns, # of rows)
   lcd.setCursor(5,0);     //Place cursor to begin write
   lcd.write("ERROR");     //Print error message
-  delay(1000);         
+  my_delay(2);         
   lcd.setCursor(2,0);
   lcd.write("WATER LEVEL");
   lcd.setCursor(4, 1);
   lcd.write("TOO LOW");
-  delay(1000);
+  my_delay(2);
   lcd.clear()
 }
 
 //Updates humidty and temperature readings. Displays onto LCD screen
-void statusUpdates(humidity, temperature){
+void statusUpdates(int chk){
     lcd.setCursor(0,0);
     lcd.write("Humidity: ");
-    lcd.write(humidity, 1);
+    lcd.print(DHT.humidity, 1);
     lcd.write("%");
     lcd.setCursor(0,1);
     lcd.write("Temp: ");
-    lcd.write(temperature, 2);
+    lcd.print(DHT.temperature, 1);
     lcd.write((char)223);
-    delay(500);
+    my_delay(2);
     lcd.clear();
   }
 }
 
 void disabled(){
-  lightSwitch(10);        //Greeb LED on
-  // make sure fan motor is off include code later
+  lightSwitch(10);        //Yellow LED on
+  fanMotor(0);             // make sure fan motor is off
 }
 
 void idle(){
   lightSwitch(11);
-  // make sure fan motor is off include code later
+  fanMotor(0);          // make sure fan motor is off
 }
 
 //Attatchinterupt, used to interupt 
 void button_ISR(){
-  fanMotor(0);
-}
+  if(buttonState == 0){          //stop motor if function is called BY INTERRUPT
+    myStepper.setSpeed(0);
+    myStepper.step(0);
+  }
 
 //main funtion
 void setup() {
   U0init(9600);                  //initialized baud rate
   adc_init();                    //adc initialized
   Wire.begin();                  //Initialize RTC
-  RTC.begin();                   //Initialize RTC
+  rtc.begin();                   //Initialize RTC
   LED_Setup();                   //Initialize LEDs
   if(flag == 1){
     errorMessage();
     flag = 0;
   }
   
-  int temperature = tempRead();        //Store temperature values recorded
-    if (! RTC.isrunning()) {
+  int temperature = temperatureRead();        //Store temperature values recorded
+    if (! rtc.isrunning()) {
     Serial.println("RTC is NOT running!");
-    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 
   //will go under function under select condition
@@ -295,7 +297,6 @@ void setup() {
   attachInterrupt(digitalPintoInterrupt(interruptPin), button_ISR, RISING);
 
   if (! RTC.isrunning()) {
-    Serial.println("RTC is NOT running!");
     RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 }
