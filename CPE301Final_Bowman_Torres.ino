@@ -27,7 +27,7 @@ volatile float humidity;
 const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;          //LCD pins (constants)
 const int stepsPerRevolution = 2038;                                 // Defines the number of steps per rotation
 const int w_threshold = 150;
-const int l_threshold = 22;
+const int t_threshold = 22;
 const byte interruptPin = 18;                                        //button attachInterrupt setup, pin18
 
 //my_delay declarations for flag/interrupt
